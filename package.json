@@ -1,21 +1,25 @@
 {
-  "name": "ip-tag",
+  "name": "ndodb-mysql",
   "types": ["module"],
   "version": "1.4",
-  "homepage": "http://github.com/shinken-monitoring/mod-ip-tag",
+  "homepage": "http://github.com/shinken-monitoring/mod-ndodb-mysql",
   "author": "Jean Gabès",
-  "description": "Tag host by their IP ranges",
+  "description": "NDO MySQL module export for Shinken",
   "contributors": [
     {
       "name": "Jean Gabès",
       "email": "naparuba@gmail.com"
+    },
+    {
+      "name": "Sébastien Coavoux",
+      "email": "s.coavoux@free.fr"
     }
   ],
-  "repository": "https://github.com/shinken-monitoring/mod-ip-tag",
+  "repository": "https://github.com/shinken-monitoring/mod-ndodb-mysql",
   "keywords": [
     "module",
-    "arbiter",
-    "ip"
+    "broker",
+    "ndo"
   ],
   "dependencies": {
     "shinken": ">=1.4"
