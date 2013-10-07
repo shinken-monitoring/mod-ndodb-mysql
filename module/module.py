@@ -26,7 +26,7 @@
 import copy
 import time
 import sys
-
+from datetime import datetime
 
 try:
     import _mysql_exceptions
@@ -344,6 +344,17 @@ class Ndodb_Mysql_broker(BaseModule):
         else:
             return row[0]
 
+    def get_comments_internal_comment_id_by_obj_id_sync(self, obj_id, instance_id):
+        query = u"SELECT internal_comment_id from %scomments where " \
+                "object_id='%s' and instance_id='%s'" % \
+                (self.prefix, obj_id, instance_id)
+        self.db.execute_query(query)
+        rows = self.db.fetchall() # we need to modify db.py to nake it work
+        if rows is None or len(rows) < 1:
+            return []
+        else:
+            return [x[0] for x in rows]
+
     def get_max_contactgroup_id_sync(self):
         query = u"SELECT COALESCE(max(contactgroup_id) + 1,1) from %scontactgroups" % self.prefix
         self.db.execute_query(query)
@@ -544,7 +555,56 @@ class Ndodb_Mysql_broker(BaseModule):
 
         hoststatus_query = self.db.create_insert_query('hoststatus', hoststatus_data)
 
-        return [query, hoststatus_query]
+        query_list = [query, hoststatus_query]
+
+        ## Add comments
+        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(host_id, data['instance_id'])
+        # TODO check if we this is comment obj.
+        comments = data['comments']
+        host_comm_d = dict((c.id, c) for c in comments)
+
+        ids_to_add = [hci for hci in host_comm_d if hci not in base_comment_ids]
+        ids_to_del = [bci for bci in base_comment_ids if bci not in host_comm_d]
+
+        for c_id in ids_to_del:
+            query_move = u"INSERT INTO %scommenthistory " \
+                         "(instance_id, entry_time, entry_time_usec, comment_type, entry_type, object_id, " \
+                         "comment_time, internal_comment_id, author_name, comment_data, is_persistent, " \
+                         "comment_source, expires, expiration_time, deletion_time, deletion_time_usec)"\
+                         " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
+                         " object_id, comment_time, internal_comment_id, author_name, comment_data," \
+                         " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
+                         "  FROM `nagios_comments` WHERE `internal_comment_id`='%s';" % (self.prefix, c_id)
+
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+
+            query_list.append(query_move)
+            query_list.append(query_del)
+
+        for c_id in ids_to_add:
+            mysql_enttime = datetime.fromtimestamp(host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            comment_data = {
+                'instance_id': data['instance_id'],
+                'entry_time': mysql_enttime,
+                'entry_time_usec': 0,
+                'comment_type': host_comm_d[c_id].comment_type,
+                'entry_type': host_comm_d[c_id].entry_type,
+                'object_id': host_id,
+                'comment_time': mysql_enttime,  # NDO doc make a small difference
+                'internal_comment_id': c_id,
+                'author_name': host_comm_d[c_id].author,
+                'comment_data': host_comm_d[c_id].comment,
+                'is_persistent': host_comm_d[c_id].persistent,
+                'comment_source': host_comm_d[c_id].source,
+                'expires': host_comm_d[c_id].expires,
+                'expiration_time': mysql_exptime,
+            }
+
+            query_add = self.db.create_insert_query('comments', comment_data)
+            query_list.append(query_add)
+
+        return query_list
 
     # A service have just been created, database is clean, we INSERT it
     def manage_initial_service_status_brok(self, b):
@@ -653,7 +713,57 @@ class Ndodb_Mysql_broker(BaseModule):
 
         servicestatus_query = self.db.create_insert_query('servicestatus', servicestatus_data)
 
-        return [query, servicestatus_query]
+        query_list = [query, servicestatus_query]
+
+        ## Add comments
+        base_comment_ids = \
+            self.get_comments_internal_comment_id_by_obj_id_sync(service_id, data['instance_id'])
+        # TODO check if we this is comment obj.
+        comments = data['comments']
+        svc_comm_d = dict((c.id, c) for c in comments)
+
+        ids_to_add = [hci for hci in svc_comm_d if hci not in base_comment_ids]
+        ids_to_del = [bci for bci in base_comment_ids if bci not in svc_comm_d]
+
+        for c_id in ids_to_del:
+            query_move = u"INSERT INTO %scommenthistory " \
+                         "(instance_id, entry_time, entry_time_usec, comment_type, entry_type, object_id, " \
+                         "comment_time, internal_comment_id, author_name, comment_data, is_persistent, " \
+                         "comment_source, expires, expiration_time, deletion_time, deletion_time_usec)"\
+                         " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
+                         " object_id, comment_time, internal_comment_id, author_name, comment_data," \
+                         " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
+                         "  FROM `nagios_comments` WHERE `internal_comment_id`='%s';" % (self.prefix, c_id)
+
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+
+            query_list.append(query_move)
+            query_list.append(query_del)
+
+        for c_id in ids_to_add:
+            mysql_enttime = datetime.fromtimestamp(svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            comment_data = {
+                'instance_id': data['instance_id'],
+                'entry_time': mysql_enttime,
+                'entry_time_usec': 0,
+                'comment_type': svc_comm_d[c_id].comment_type,
+                'entry_type': svc_comm_d[c_id].entry_type,
+                'object_id': service_id,
+                'comment_time': mysql_enttime,  # NDO doc make a small difference
+                'internal_comment_id': c_id,
+                'author_name': svc_comm_d[c_id].author,
+                'comment_data': svc_comm_d[c_id].comment,
+                'is_persistent': svc_comm_d[c_id].persistent,
+                'comment_source': svc_comm_d[c_id].source,
+                'expires': svc_comm_d[c_id].expires,
+                'expiration_time': mysql_exptime,
+            }
+
+            query_add = self.db.create_insert_query('comments', comment_data)
+            query_list.append(query_add)
+
+        return query_list
 
     # A new host group? Insert it
     # We need to do something for the members prop (host.id, host_name)
@@ -1028,7 +1138,56 @@ class Ndodb_Mysql_broker(BaseModule):
 
         hoststatus_query = self.db.create_update_query('hoststatus', hoststatus_data, where_clause)
 
-        return [query, hoststatus_query]
+        query_list = [query, hoststatus_query]
+
+        ## Add comments
+        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(host_id, data['instance_id'])
+        # TODO check if we this is comment obj.
+        comments = data['comments']
+        host_comm_d = dict((c.id, c) for c in comments)
+
+        ids_to_add = [hci for hci in host_comm_d if hci not in base_comment_ids]
+        ids_to_del = [bci for bci in base_comment_ids if bci not in host_comm_d]
+
+        for c_id in ids_to_del:
+            query_move = u"INSERT INTO %scommenthistory " \
+                         "(instance_id, entry_time, entry_time_usec, comment_type, entry_type, object_id, " \
+                         "comment_time, internal_comment_id, author_name, comment_data, is_persistent, " \
+                         "comment_source, expires, expiration_time, deletion_time, deletion_time_usec)"\
+                         " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
+                         " object_id, comment_time, internal_comment_id, author_name, comment_data," \
+                         " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
+                         "  FROM `nagios_comments` WHERE `internal_comment_id`='%s';" % (self.prefix, c_id)
+
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+
+            query_list.append(query_move)
+            query_list.append(query_del)
+
+        for c_id in ids_to_add:
+            mysql_enttime = datetime.fromtimestamp(host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            comment_data = {
+                'instance_id': data['instance_id'],
+                'entry_time': mysql_enttime,
+                'entry_time_usec': 0,
+                'comment_type': host_comm_d[c_id].comment_type,
+                'entry_type': host_comm_d[c_id].entry_type,
+                'object_id': host_id,
+                'comment_time': mysql_enttime,  # NDO doc make a small difference
+                'internal_comment_id': c_id,
+                'author_name': host_comm_d[c_id].author,
+                'comment_data': host_comm_d[c_id].comment,
+                'is_persistent': host_comm_d[c_id].persistent,
+                'comment_source': host_comm_d[c_id].source,
+                'expires': host_comm_d[c_id].expires,
+                'expiration_time': mysql_exptime,
+            }
+
+            query_add = self.db.create_insert_query('comments', comment_data)
+            query_list.append(query_add)
+
+        return query_list
 
     # Ok the service is updated
     def manage_update_service_status_brok(self, b):
@@ -1111,12 +1270,62 @@ class Ndodb_Mysql_broker(BaseModule):
 
         where_clause = {'service_object_id': service_id}
         servicestatus_query = self.db.create_update_query(
-            'servicestatus', \
-            servicestatus_data, \
+            'servicestatus',
+            servicestatus_data,
             where_clause
-            )
+        )
 
-        return [query, servicestatus_query]
+        query_list = [query, servicestatus_query]
+
+        ## Add comments
+        base_comment_ids = \
+            self.get_comments_internal_comment_id_by_obj_id_sync(service_id, data['instance_id'])
+        # TODO check if we this is comment obj.
+        comments = data['comments']
+        svc_comm_d = dict((c.id, c) for c in comments)
+
+        ids_to_add = [hci for hci in svc_comm_d if hci not in base_comment_ids]
+        ids_to_del = [bci for bci in base_comment_ids if bci not in svc_comm_d]
+
+        for c_id in ids_to_del:
+            query_move = u"INSERT INTO %scommenthistory " \
+                         "(instance_id, entry_time, entry_time_usec, comment_type, entry_type, object_id, " \
+                         "comment_time, internal_comment_id, author_name, comment_data, is_persistent, " \
+                         "comment_source, expires, expiration_time, deletion_time, deletion_time_usec)"\
+                         " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
+                         " object_id, comment_time, internal_comment_id, author_name, comment_data," \
+                         " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
+                         "  FROM `nagios_comments` WHERE `internal_comment_id`='%s';" % (self.prefix, c_id)
+
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+
+            query_list.append(query_move)
+            query_list.append(query_del)
+
+        for c_id in ids_to_add:
+            mysql_enttime = datetime.fromtimestamp(svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            comment_data = {
+                'instance_id': data['instance_id'],
+                'entry_time': mysql_enttime,
+                'entry_time_usec': 0,
+                'comment_type': svc_comm_d[c_id].comment_type,
+                'entry_type': svc_comm_d[c_id].entry_type,
+                'object_id': service_id,
+                'comment_time': mysql_enttime,  # NDO doc make a small difference
+                'internal_comment_id': c_id,
+                'author_name': svc_comm_d[c_id].author,
+                'comment_data': svc_comm_d[c_id].comment,
+                'is_persistent': svc_comm_d[c_id].persistent,
+                'comment_source': svc_comm_d[c_id].source,
+                'expires': svc_comm_d[c_id].expires,
+                'expiration_time': mysql_exptime,
+            }
+
+            query_add = self.db.create_insert_query('comments', comment_data)
+            query_list.append(query_add)
+
+        return query_list
 
     # A host have just be create, database is clean, we INSERT it
     def manage_initial_contact_status_brok(self, b):
