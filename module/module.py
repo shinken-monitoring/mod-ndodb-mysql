@@ -896,7 +896,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
                 'is_fixed': dict_ids[dt_id].fixed,
-                 'duration': dict_ids[dt_id].duration
+                'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
@@ -1384,7 +1384,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
                 'is_fixed': dict_ids[dt_id].fixed,
-                 'duration': dict_ids[dt_id].duration
+                 'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
@@ -1578,7 +1578,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
                 'is_fixed': dict_ids[dt_id].fixed,  #Check is boolean is well insert
-                 'duration': dict_ids[dt_id].duration
+                 'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
