@@ -403,7 +403,8 @@ class Ndodb_Mysql_broker(BaseModule):
         )
 
         to_del = ['instance_name', 'command_file', 'check_external_commands', \
-                  'check_service_freshness', 'check_host_freshness']
+                  'check_service_freshness', 'check_host_freshness',
+		  'interval_length']
         to_add = []
         mapping = self.mapping['program_status']
         for prop in new_b.data:
@@ -428,7 +429,8 @@ class Ndodb_Mysql_broker(BaseModule):
     def manage_update_program_status_brok(self, b):
         new_b = copy.deepcopy(b)
         to_del = ['instance_name', 'command_file', 'check_external_commands',
-                  'check_service_freshness', 'check_host_freshness']
+                  'check_service_freshness', 'check_host_freshness',
+		  'interval_length']
         to_add = []
         mapping = self.mapping['program_status']
         for prop in new_b.data:
