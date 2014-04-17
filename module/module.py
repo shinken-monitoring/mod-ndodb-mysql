@@ -600,6 +600,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'percent_state_change': data['percent_state_change'],
             'is_flapping': data['is_flapping'],
             'flap_detection_enabled': data['flap_detection_enabled'],
+            'scheduled_downtime_depth': data['scheduled_downtime_depth'],
         }
 
         # Centreon add some fields
@@ -814,6 +815,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'percent_state_change': data['percent_state_change'],
             'is_flapping': data['is_flapping'],
             'flap_detection_enabled': data['flap_detection_enabled'],
+            'scheduled_downtime_depth': data['scheduled_downtime_depth'],
         }
 
         # Centreon add some fields
