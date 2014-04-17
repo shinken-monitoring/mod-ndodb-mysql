@@ -127,6 +127,8 @@ class Ndodb_Mysql_broker(BaseModule):
         # to access the wanted data
         self.services_cache_sync = {}
         self.hosts_cache_sync = {}
+        self.comments_cache_sync = {}
+        self.downtimes_cache_sync = {}
 
         # We need to search for centreon_specific fields, like long_output
         query = u"select TABLE_NAME from information_schema.columns " \
@@ -359,6 +361,10 @@ class Ndodb_Mysql_broker(BaseModule):
             return row[0]
 
     def get_comments_internal_comment_id_by_obj_id_sync(self, obj_id, instance_id):
+
+        if instance_id in self.comments_cache_sync and obj_id in self.comments_cache_sync[instance_id]:
+            return self.comments_cache_sync[instance_id][obj_id]
+
         query = u"SELECT internal_comment_id from %scomments where " \
                 "object_id='%s' and instance_id='%s'" % \
                 (self.prefix, obj_id, instance_id)
@@ -367,9 +373,16 @@ class Ndodb_Mysql_broker(BaseModule):
         if rows is None or len(rows) < 1:
             return []
         else:
-            return [x[0] for x in rows]
+            if instance_id not in self.comments_cache_sync:
+                self.comments_cache_sync[instance_id] = {}
+            rows = [x[0] for x in rows]
+            self.comments_cache_sync[instance_id][obj_id] = rows
+            return rows
 
     def get_downtime_internal_downtime_id_by_obj_id_sync(self, obj_id, instance_id):
+
+        if instance_id in self.downtimes_cache_sync and obj_id in self.downtimes_cache_sync[instance_id]:
+            return self.downtimes_cache_sync[instance_id][obj_id]
         query = u"SELECT internal_downtime_id from %sscheduleddowntime where " \
                 "object_id='%s' and instance_id='%s'" % \
                 (self.prefix, obj_id, instance_id)
@@ -378,7 +391,11 @@ class Ndodb_Mysql_broker(BaseModule):
         if rows is None or len(rows) < 1:
             return []
         else:
-            return [x[0] for x in rows]
+            if instance_id not in self.downtimes_cache_sync:
+                self.downtimes_cache_sync[instance_id] = {}
+            rows = [x[0] for x in rows]
+            self.downtimes_cache_sync[instance_id][obj_id] = rows
+            return rows
 
     def get_max_contactgroup_id_sync(self):
         query = u"SELECT COALESCE(max(contactgroup_id) + 1,1) " \
