@@ -560,6 +560,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'obsess_over_host': data['obsess_over_host'],
             'notes': data['notes'],
             'notes_url': data['notes_url'],
+            'action_url': data['action_url']
         }
 
         #print "HOST DATA", hosts_data
@@ -773,7 +774,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'notifications_enabled': data['notifications_enabled'],
             'obsess_over_service': data['obsess_over_service'],
             'notes': data['notes'],
-            'notes_url': data['notes_url']
+            'notes_url': data['notes_url'],
+            'action_url': data['action_url']
         }
 
         #print "HOST DATA", hosts_data
@@ -1263,7 +1265,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'notifications_enabled': data['notifications_enabled'],
             'obsess_over_host': data['obsess_over_host'],
             'notes': data['notes'],
-            'notes_url': data['notes_url']
+            'notes_url': data['notes_url'],
+            'action_url': data['action_url']
         }
         # Only the host is impacted
         where_clause = {'host_object_id': host_id}
@@ -1448,7 +1451,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'notifications_enabled': data['notifications_enabled'],
             'obsess_over_service': data['obsess_over_service'],
             'notes': data['notes'],
-            'notes_url': data['notes_url']
+            'notes_url': data['notes_url'],
+            'action_url': data['action_url']
         }
 
         # Only the service is impacted
