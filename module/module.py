@@ -1076,6 +1076,7 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # Only the host is impacted
         where_clause = {'host_object_id': host_id}
+        start_time = datetime.now()
         host_check_data = {
             'instance_id': data['instance_id'],
             'check_type': 0, 'is_raw_check': 0,
@@ -1083,8 +1084,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'state': data['state_id'],
             'state_type': data['state_type_id'],
             # FIXME: ATM, we put the received time of the brok
-            'start_time': time.strftime("%Y-%m-%d %H:%M:%S"),
-            'start_time_usec': 0,
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'start_time_usec': start_time.microsecond,
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'return_code': data['return_code'],
