@@ -1733,9 +1733,17 @@ class Ndodb_Mysql_broker(BaseModule):
         # TO FIX: output is empty
         # TO FIX: end_time and start time are equal to 0 (back in the 70's!!)
         # TO FIX: state is equal to 0
+        if not data['start_time']:
+            start_time = datetime.now()
+            start_time_usec = start_time.microsecond
+        else:
+            start_time = de_unixify(data['start_time'])
+            start_time_usec = 0
         notification_data = {
             'instance_id': data['instance_id'],
-            'start_time': de_unixify(data['start_time']),
+            # FIXME: ATM, we put the received time of the brok
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'start_time_usec': start_time_usec,
             'end_time': de_unixify(data['end_time']),
             'state': data['state'],
             'notification_type': notification_type,
