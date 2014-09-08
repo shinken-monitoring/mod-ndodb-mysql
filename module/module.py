@@ -1076,6 +1076,7 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # Only the host is impacted
         where_clause = {'host_object_id': host_id}
+        start_time = datetime.now()
         host_check_data = {
             'instance_id': data['instance_id'],
             'check_type': 0, 'is_raw_check': 0,
@@ -1083,8 +1084,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'state': data['state_id'],
             'state_type': data['state_type_id'],
             # FIXME: ATM, we put the received time of the brok
-            'start_time': time.strftime("%Y-%m-%d %H:%M:%S"),
-            'start_time_usec': 0,
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'start_time_usec': start_time.microsecond,
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'return_code': data['return_code'],
@@ -1158,6 +1159,7 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # Only the service is impacted
         where_clause = {'service_object_id': service_id}
+        start_time = datetime.now()
         service_check_data = {
             'instance_id': data['instance_id'],
             'check_type': 0,
@@ -1165,8 +1167,8 @@ class Ndodb_Mysql_broker(BaseModule):
             'state': data['state_id'],
             'state_type': data['state_type_id'],
             # FIXME: ATM, we put the received time of the brok
-            'start_time': time.strftime("%Y-%m-%d %H:%M:%S"),
-            'start_time_usec': 0,
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'start_time_usec': start_time.microsecond,
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'return_code': data['return_code'],
@@ -1732,9 +1734,17 @@ class Ndodb_Mysql_broker(BaseModule):
         # TO FIX: output is empty
         # TO FIX: end_time and start time are equal to 0 (back in the 70's!!)
         # TO FIX: state is equal to 0
+        if not data['start_time']:
+            start_time = datetime.now()
+            start_time_usec = start_time.microsecond
+        else:
+            start_time = de_unixify(data['start_time'])
+            start_time_usec = 0
         notification_data = {
             'instance_id': data['instance_id'],
-            'start_time': de_unixify(data['start_time']),
+            # FIXME: ATM, we put the received time of the brok
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            'start_time_usec': start_time_usec,
             'end_time': de_unixify(data['end_time']),
             'state': data['state'],
             'notification_type': notification_type,
