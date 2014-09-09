@@ -67,6 +67,9 @@ properties = {
 def de_unixify(t):
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
 
+def escape_backslash(s):
+    return s.replace('\\', '\\\\')
+
 
 class Ndodb_Mysql_broker(BaseModule):
 
@@ -586,7 +589,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'last_hard_state_change': de_unixify(
                 data['last_hard_state_change']),
@@ -802,7 +805,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'last_hard_state_change': de_unixify(data[
                 'last_hard_state_change']),
@@ -1090,7 +1093,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'latency': data['latency'],
             'return_code': data['return_code'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'host_object_id': host_id,
         }
         # Centreon add some fields
@@ -1114,7 +1117,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'percent_state_change': data['percent_state_change'],
         }
@@ -1173,7 +1176,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'latency': data['latency'],
             'return_code': data['return_code'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'service_object_id': service_id,
         }
 
@@ -1199,7 +1202,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'percent_state_change': data['percent_state_change'],
         }
@@ -1295,7 +1298,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'last_hard_state_change': de_unixify(data[
                 'last_hard_state_change']),
@@ -1485,7 +1488,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'execution_time': data['execution_time'],
             'latency': data['latency'],
             'output': data['output'],
-            'perfdata': data['perf_data'],
+            'perfdata': escape_backslash(data['perf_data']),
             'last_check': de_unixify(data['last_chk']),
             'last_hard_state_change': de_unixify(data[
                 'last_hard_state_change']),
