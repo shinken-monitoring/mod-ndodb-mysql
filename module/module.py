@@ -132,9 +132,9 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # We need to search for centreon_specific fields, like long_output
         query = u"select TABLE_NAME from information_schema.columns " \
-                "where TABLE_SCHEMA='ndo' and " \
+                "where TABLE_SCHEMA='%s' and " \
                 "TABLE_NAME='%sservicestatus' and " \
-                "COLUMN_NAME='long_output';" % self.prefix
+                "COLUMN_NAME='long_output';" % (self.database, self.prefix)
 
         self.db.execute_query(query)
         row = self.db.fetchone()
