@@ -46,11 +46,14 @@ def get_instance(mod_conf):
         raise Exception(
             'Cannot load module python-mysqldb. Please install it.')
 
-    # Default behavior: character_set is utf8 and synchro is turned off
+    # Default behavior: character_set is utf8, synchro is turned off and
+    # we store hosts and services checks
     if not hasattr(mod_conf, 'character_set'):
         mod_conf.character_set = 'utf8'
     if not hasattr(mod_conf, 'synchronize_database_id'):
         mod_conf.synchronize_database_id = '1'
+    if not hasattr(mod_conf, 'disable_checks_storage'):
+        mod_conf.disable_checks_storage = '0'
     instance = Ndodb_Mysql_broker(mod_conf)
 
     return instance
@@ -113,6 +116,8 @@ class Ndodb_Mysql_broker(BaseModule):
         # that are not in the vanilla ndo
         self.centreon_version = False
         self.synchronize_database_id = int(conf.synchronize_database_id)
+        self.disable_checks_storage = (getattr(conf, 'disable_checks_storage',
+                                               '0') == '1')
 
     # Called by Broker so we can do init stuff
     # TODO: add conf param to get pass with init
@@ -1096,29 +1101,31 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # Only the host is impacted
         where_clause = {'host_object_id': host_id}
-        start_time = datetime.now()
-        host_check_data = {
-            'instance_id': data['instance_id'],
-            'check_type': 0, 'is_raw_check': 0,
-            'current_check_attempt': data['attempt'],
-            'state': data['state_id'],
-            'state_type': data['state_type_id'],
-            # FIXME: ATM, we put the received time of the brok
-            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'start_time_usec': start_time.microsecond,
-            'execution_time': data['execution_time'],
-            'latency': data['latency'],
-            'return_code': data['return_code'],
-            'output': data['output'],
-            'perfdata': escape_backslash(data['perf_data']),
-            'host_object_id': host_id,
-        }
-        # Centreon add some fields
-        if self.centreon_version:
-            host_check_data['long_output'] = data['long_output']
 
-        queries.append(
-            self.db.create_insert_query('hostchecks', host_check_data))
+        if not self.disable_checks_storage:
+            start_time = datetime.now()
+            host_check_data = {
+                'instance_id': data['instance_id'],
+                'check_type': 0, 'is_raw_check': 0,
+                'current_check_attempt': data['attempt'],
+                'state': data['state_id'],
+                'state_type': data['state_type_id'],
+                # FIXME: ATM, we put the received time of the brok
+                'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                'start_time_usec': start_time.microsecond,
+                'execution_time': data['execution_time'],
+                'latency': data['latency'],
+                'return_code': data['return_code'],
+                'output': data['output'],
+                'perfdata': escape_backslash(data['perf_data']),
+                'host_object_id': host_id,
+            }
+            # Centreon add some fields
+            if self.centreon_version:
+                host_check_data['long_output'] = data['long_output']
+
+            queries.append(
+                self.db.create_insert_query('hostchecks', host_check_data))
 
         if data['state'] != data['last_state']:
             queries.append(self.update_statehistory(host_id, data))
@@ -1177,30 +1184,33 @@ class Ndodb_Mysql_broker(BaseModule):
 
         # Only the service is impacted
         where_clause = {'service_object_id': service_id}
-        start_time = datetime.now()
-        service_check_data = {
-            'instance_id': data['instance_id'],
-            'check_type': 0,
-            'current_check_attempt': data['attempt'],
-            'state': data['state_id'],
-            'state_type': data['state_type_id'],
-            # FIXME: ATM, we put the received time of the brok
-            'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            'start_time_usec': start_time.microsecond,
-            'execution_time': data['execution_time'],
-            'latency': data['latency'],
-            'return_code': data['return_code'],
-            'output': data['output'],
-            'perfdata': escape_backslash(data['perf_data']),
-            'service_object_id': service_id,
-        }
 
-        # Centreon add some fields
-        if self.centreon_version:
-            service_check_data['long_output'] = data['long_output']
+        if not self.disable_checks_storage:
+            start_time = datetime.now()
+            service_check_data = {
+                'instance_id': data['instance_id'],
+                'check_type': 0,
+                'current_check_attempt': data['attempt'],
+                'state': data['state_id'],
+                'state_type': data['state_type_id'],
+                # FIXME: ATM, we put the received time of the brok
+                'start_time': start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                'start_time_usec': start_time.microsecond,
+                'execution_time': data['execution_time'],
+                'latency': data['latency'],
+                'return_code': data['return_code'],
+                'output': data['output'],
+                'perfdata': escape_backslash(data['perf_data']),
+                'service_object_id': service_id,
+            }
 
-        queries.append(
-            self.db.create_insert_query('servicechecks', service_check_data))
+            # Centreon add some fields
+            if self.centreon_version:
+                service_check_data['long_output'] = data['long_output']
+
+            queries.append(
+                self.db.create_insert_query('servicechecks',
+                                            service_check_data))
 
         # update statehistory if necessary
         if data['state'] != data['last_state']:
