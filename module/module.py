@@ -25,7 +25,6 @@
 
 import copy
 import time
-import sys
 from datetime import datetime
 
 try:
@@ -69,6 +68,7 @@ properties = {
 
 def de_unixify(t):
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
+
 
 def escape_backslash(s):
     return s.replace('\\', '\\\\')
@@ -370,14 +370,15 @@ class Ndodb_Mysql_broker(BaseModule):
 
     def get_comments_internal_comment_id_by_obj_id_sync(self, obj_id, instance_id):
 
-        if instance_id in self.comments_cache_sync and obj_id in self.comments_cache_sync[instance_id]:
+        if (instance_id in self.comments_cache_sync and
+           obj_id in self.comments_cache_sync[instance_id]):
             return self.comments_cache_sync[instance_id][obj_id]
 
         query = u"SELECT internal_comment_id from %scomments where " \
                 "object_id='%s' and instance_id='%s'" % \
                 (self.prefix, obj_id, instance_id)
         self.db.execute_query(query)
-        rows = self.db.fetchall() # we need to modify db.py to nake it work
+        rows = self.db.fetchall()  # we need to modify db.py to nake it work
         if rows is None or len(rows) < 1:
             return []
         else:
@@ -389,13 +390,14 @@ class Ndodb_Mysql_broker(BaseModule):
 
     def get_downtime_internal_downtime_id_by_obj_id_sync(self, obj_id, instance_id):
 
-        if instance_id in self.downtimes_cache_sync and obj_id in self.downtimes_cache_sync[instance_id]:
+        if (instance_id in self.downtimes_cache_sync and
+           obj_id in self.downtimes_cache_sync[instance_id]):
             return self.downtimes_cache_sync[instance_id][obj_id]
         query = u"SELECT internal_downtime_id from %sscheduleddowntime where " \
                 "object_id='%s' and instance_id='%s'" % \
                 (self.prefix, obj_id, instance_id)
         self.db.execute_query(query)
-        rows = self.db.fetchall() # we need to modify db.py to nake it work
+        rows = self.db.fetchall()  # we need to modify db.py to nake it work
         if rows is None or len(rows) < 1:
             return []
         else:
@@ -432,7 +434,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'programstatus', 'hoststatus', 'servicestatus',
             # Comment and downtime
             'comments', 'scheduleddowntime', 'commenthistory', 'downtimehistory'
-            ]
+        ]
 
         res = []
         for table in tables:
@@ -477,7 +479,7 @@ class Ndodb_Mysql_broker(BaseModule):
         for prop in new_b.data:
             # ex: 'name': 'program_start_time', 'transform'
             if prop in mapping:
-                #print "Got a prop to change", prop
+                # print "Got a prop to change", prop
                 val = new_b.data[prop]
                 if mapping[prop]['transform'] is not None:
                     f = mapping[prop]['transform']
@@ -543,7 +545,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 data['host_name'], data['instance_id']
             )
 
-        #print "DATA:", data
+        # print "DATA:", data
         hosts_data = {
             'instance_id': data['instance_id'],
             'host_object_id': host_id, 'alias': data['alias'],
@@ -571,7 +573,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'action_url': data['action_url']
         }
 
-        #print "HOST DATA", hosts_data
+        # print "HOST DATA", hosts_data
         query = self.db.create_insert_query('hosts', hosts_data)
 
         # Now create an hoststatus entry
@@ -621,8 +623,9 @@ class Ndodb_Mysql_broker(BaseModule):
 
         query_list = [query, hoststatus_query]
 
-        ## Add comments
-        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(host_id, data['instance_id'])
+        # Add comments
+        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(
+            host_id, data['instance_id'])
         comments = data['comments']
         host_comm_d = dict((c.id, c) for c in comments)
 
@@ -640,14 +643,17 @@ class Ndodb_Mysql_broker(BaseModule):
                          "  FROM %scomments WHERE internal_comment_id='%s';" % \
                          (self.prefix, self.prefix, c_id)
 
-            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (
+                self.prefix, c_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for c_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_exptime = datetime.fromtimestamp(host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(
+                host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
             comment_data = {
                 'instance_id': data['instance_id'],
                 'entry_time': mysql_enttime,
@@ -668,8 +674,9 @@ class Ndodb_Mysql_broker(BaseModule):
             query_add = self.db.create_insert_query('comments', comment_data)
             query_list.append(query_add)
 
-        ## Add downtime
-        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(host_id, data['instance_id'])
+        # Add downtime
+        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(
+            host_id, data['instance_id'])
         downtimes = data['downtimes']
         dict_ids = dict((d.id, d) for d in downtimes)
 
@@ -689,15 +696,19 @@ class Ndodb_Mysql_broker(BaseModule):
                          " FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % \
                          (self.prefix, self.prefix, dt_id)
 
-            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (self.prefix, dt_id)
+            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (
+                self.prefix, dt_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for dt_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_strtime = datetime.fromtimestamp(dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_endtime = datetime.fromtimestamp(dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_strtime = datetime.fromtimestamp(
+                dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_endtime = datetime.fromtimestamp(
+                dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
             data = {
                 'instance_id': data['instance_id'],
                 'downtime_type': 2,
@@ -708,7 +719,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
                 'is_fixed': dict_ids[dt_id].fixed,
-                 'duration': dict_ids[dt_id].duration,
+                'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
@@ -724,8 +735,6 @@ class Ndodb_Mysql_broker(BaseModule):
 
     # A service have just been created, database is clean, we INSERT it
     def manage_initial_service_status_brok(self, b):
-        #new_b = copy.deepcopy(b)
-
         data = b.data
         service_id = self.get_service_object_id_by_name_sync(
             data['host_name'],
@@ -756,9 +765,9 @@ class Ndodb_Mysql_broker(BaseModule):
         # TODO: Include with the service cache.
         self.mapping_service_id[data['id']] = service_id
 
-        #print "DATA:", data
-        #print "HOST ID:", host_id
-        #print "SERVICE ID:", service_id
+        # print "DATA:", data
+        # print "HOST ID:", host_id
+        # print "SERVICE ID:", service_id
         services_data = {
             'instance_id': data['instance_id'],
             'service_object_id': service_id,
@@ -786,7 +795,7 @@ class Ndodb_Mysql_broker(BaseModule):
             'action_url': data['action_url']
         }
 
-        #print "HOST DATA", hosts_data
+        # print "HOST DATA", hosts_data
         query = self.db.create_insert_query('services', services_data)
 
         # Now create an hoststatus entry
@@ -837,7 +846,7 @@ class Ndodb_Mysql_broker(BaseModule):
 
         query_list = [query, servicestatus_query]
 
-        ## Add comments
+        # Add comments
         base_comment_ids = \
             self.get_comments_internal_comment_id_by_obj_id_sync(service_id, data['instance_id'])
         # TODO check if we this is comment obj.
@@ -855,16 +864,20 @@ class Ndodb_Mysql_broker(BaseModule):
                          " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
                          " object_id, comment_time, internal_comment_id, author_name, comment_data," \
                          " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
-                         "  FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, self.prefix, c_id)
+                         "  FROM %scomments WHERE internal_comment_id='%s';" % (
+                             self.prefix, self.prefix, c_id)
 
-            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (
+                self.prefix, c_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for c_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_exptime = datetime.fromtimestamp(svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(
+                svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
             comment_data = {
                 'instance_id': data['instance_id'],
                 'entry_time': mysql_enttime,
@@ -885,8 +898,9 @@ class Ndodb_Mysql_broker(BaseModule):
             query_add = self.db.create_insert_query('comments', comment_data)
             query_list.append(query_add)
 
-        ## Add downtime
-        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(service_id, data['instance_id'])
+        # Add downtime
+        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(
+            service_id, data['instance_id'])
         downtimes = data['downtimes']
         dict_ids = dict((d.id, d) for d in downtimes)
 
@@ -906,15 +920,19 @@ class Ndodb_Mysql_broker(BaseModule):
                          " FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % \
                          (self.prefix, self.prefix, dt_id)
 
-            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (self.prefix, dt_id)
+            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (
+                self.prefix, dt_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for dt_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_strtime = datetime.fromtimestamp(dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_endtime = datetime.fromtimestamp(dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_strtime = datetime.fromtimestamp(
+                dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_endtime = datetime.fromtimestamp(
+                dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
             data = {
                 'instance_id': data['instance_id'],
                 'downtime_type': 1,
@@ -1076,7 +1094,6 @@ class Ndodb_Mysql_broker(BaseModule):
     # Same than service result, but for host result
     def manage_host_check_result_brok(self, b):
         data = b.data
-        #logger.debug("DATA %s" % data)
         queries = []
 
         host_id = self.get_host_object_id_by_name_sync(
@@ -1110,7 +1127,6 @@ class Ndodb_Mysql_broker(BaseModule):
             queries.append(
                 self.db.create_insert_query('hostchecks', host_check_data))
 
-        statehistory_query = ''
         if data['state'] != data['last_state']:
             queries.append(self.update_statehistory(host_id, data))
 
@@ -1158,7 +1174,6 @@ class Ndodb_Mysql_broker(BaseModule):
     # Same than host result, but for service result
     def manage_service_check_result_brok(self, b):
         data = b.data
-        #logger.debug("DATA %s" % data)
         queries = []
 
         service_id = self.get_service_object_id_by_name_sync(
@@ -1198,7 +1213,6 @@ class Ndodb_Mysql_broker(BaseModule):
                                             service_check_data))
 
         # update statehistory if necessary
-        statehistory_query = ''
         if data['state'] != data['last_state']:
             queries.append(self.update_statehistory(service_id, data))
 
@@ -1233,7 +1247,7 @@ class Ndodb_Mysql_broker(BaseModule):
     # next_check with it
     def manage_service_next_schedule_brok(self, b):
         data = b.data
-        #print "DATA", data
+        # print "DATA", data
         service_id = self.get_service_object_id_by_name_sync(
             data['host_name'],
             data['service_description'],
@@ -1334,8 +1348,9 @@ class Ndodb_Mysql_broker(BaseModule):
 
         query_list = [query, hoststatus_query]
 
-        ## Add comments
-        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(host_id, data['instance_id'])
+        # Add comments
+        base_comment_ids = self.get_comments_internal_comment_id_by_obj_id_sync(
+            host_id, data['instance_id'])
         # TODO check if we this is comment obj.
         comments = data['comments']
         host_comm_d = dict((c.id, c) for c in comments)
@@ -1351,16 +1366,20 @@ class Ndodb_Mysql_broker(BaseModule):
                          " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
                          " object_id, comment_time, internal_comment_id, author_name, comment_data," \
                          " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
-                         "  FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, self.prefix, c_id)
+                         "  FROM %scomments WHERE internal_comment_id='%s';" % (
+                             self.prefix, self.prefix, c_id)
 
-            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (
+                self.prefix, c_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for c_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_exptime = datetime.fromtimestamp(host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                host_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(
+                host_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
             comment_data = {
                 'instance_id': data['instance_id'],
                 'entry_time': mysql_enttime,
@@ -1381,8 +1400,9 @@ class Ndodb_Mysql_broker(BaseModule):
             query_add = self.db.create_insert_query('comments', comment_data)
             query_list.append(query_add)
 
-        ## Add downtime
-        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(host_id, data['instance_id'])
+        # Add downtime
+        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(
+            host_id, data['instance_id'])
         downtimes = data['downtimes']
         dict_ids = dict((d.id, d) for d in downtimes)
 
@@ -1402,15 +1422,19 @@ class Ndodb_Mysql_broker(BaseModule):
                          " FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % \
                          (self.prefix, self.prefix, dt_id)
 
-            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (self.prefix, dt_id)
+            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (
+                self.prefix, dt_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for dt_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_strtime = datetime.fromtimestamp(dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_endtime = datetime.fromtimestamp(dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_strtime = datetime.fromtimestamp(
+                dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_endtime = datetime.fromtimestamp(
+                dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
             data = {
                 'instance_id': data['instance_id'],
                 'downtime_type': 2,
@@ -1421,7 +1445,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
                 'is_fixed': dict_ids[dt_id].fixed,
-                 'duration': dict_ids[dt_id].duration,
+                'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
@@ -1528,7 +1552,7 @@ class Ndodb_Mysql_broker(BaseModule):
 
         query_list = [query, servicestatus_query]
 
-        ## Add comments
+        # Add comments
         base_comment_ids = \
             self.get_comments_internal_comment_id_by_obj_id_sync(service_id, data['instance_id'])
         # TODO check if we this is comment obj.
@@ -1546,16 +1570,20 @@ class Ndodb_Mysql_broker(BaseModule):
                          " SELECT instance_id, entry_time, entry_time_usec, comment_type, entry_type," \
                          " object_id, comment_time, internal_comment_id, author_name, comment_data," \
                          " is_persistent, comment_source, expires, expiration_time, NOW(), 0" \
-                         "  FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, self.prefix, c_id)
+                         "  FROM %scomments WHERE internal_comment_id='%s';" % (
+                             self.prefix, self.prefix, c_id)
 
-            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (self.prefix, c_id)
+            query_del = u"DELETE FROM %scomments WHERE internal_comment_id='%s';" % (
+                self.prefix, c_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for c_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_exptime = datetime.fromtimestamp(svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                svc_comm_d[c_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_exptime = datetime.fromtimestamp(
+                svc_comm_d[c_id].expire_time).strftime('%Y-%m-%d %H:%M:%S')
             comment_data = {
                 'instance_id': data['instance_id'],
                 'entry_time': mysql_enttime,
@@ -1576,8 +1604,9 @@ class Ndodb_Mysql_broker(BaseModule):
             query_add = self.db.create_insert_query('comments', comment_data)
             query_list.append(query_add)
 
-        ## Add downtime
-        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(service_id, data['instance_id'])
+        # Add downtime
+        base_ids = self.get_downtime_internal_downtime_id_by_obj_id_sync(
+            service_id, data['instance_id'])
         downtimes = data['downtimes']
         dict_ids = dict((d.id, d) for d in downtimes)
 
@@ -1597,15 +1626,19 @@ class Ndodb_Mysql_broker(BaseModule):
                          " FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % \
                          (self.prefix, self.prefix, dt_id)
 
-            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (self.prefix, dt_id)
+            query_del = u"DELETE FROM %sscheduleddowntime WHERE internal_downtime_id='%s';" % (
+                self.prefix, dt_id)
 
             query_list.append(query_move)
             query_list.append(query_del)
 
         for dt_id in ids_to_add:
-            mysql_enttime = datetime.fromtimestamp(dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_strtime = datetime.fromtimestamp(dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
-            mysql_endtime = datetime.fromtimestamp(dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_enttime = datetime.fromtimestamp(
+                dict_ids[dt_id].entry_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_strtime = datetime.fromtimestamp(
+                dict_ids[dt_id].start_time).strftime('%Y-%m-%d %H:%M:%S')
+            mysql_endtime = datetime.fromtimestamp(
+                dict_ids[dt_id].end_time).strftime('%Y-%m-%d %H:%M:%S')
             data = {
                 'instance_id': data['instance_id'],
                 'downtime_type': 1,
@@ -1615,8 +1648,8 @@ class Ndodb_Mysql_broker(BaseModule):
                 'comment_data': dict_ids[dt_id].comment,
                 'internal_downtime_id': dt_id,
                 'triggered_by_id': dict_ids[dt_id].trigger_id,
-                'is_fixed': dict_ids[dt_id].fixed,  #Check is boolean is well insert
-                 'duration': dict_ids[dt_id].duration,
+                'is_fixed': dict_ids[dt_id].fixed,  # Check is boolean is well insert
+                'duration': dict_ids[dt_id].duration,
                 'scheduled_start_time': mysql_strtime,
                 'scheduled_end_time': mysql_endtime,
                 'was_started': dict_ids[dt_id].is_in_effect,
@@ -1665,7 +1698,7 @@ class Ndodb_Mysql_broker(BaseModule):
                 'service_notifications_enabled'],
         }
 
-        #print "HOST DATA", hosts_data
+        # print "HOST DATA", hosts_data
         query = self.db.create_insert_query('contacts', contacts_data)
         return [query]
 
@@ -1727,7 +1760,7 @@ class Ndodb_Mysql_broker(BaseModule):
     def manage_notification_raise_brok(self, b):
 
         data = b.data
-        #print "CREATING A NOTIFICATION", data
+        # print "CREATING A NOTIFICATION", data
         if data['service_description'] != '':
             object_id = self.get_service_object_id_by_name_sync(
                 data['host_name'],
